@@ -2,22 +2,22 @@ $fn = 50;
 
 module cup_holder(thickness = 4, height = 10, brim_width = 5, hole_angle = 45) {
     radius = 33.9;
-    cut = 0.75*radius;
-    
+    cut = 0.77*radius;
+
     // Mounting holes
     hole_diameter = 4; // M4 screw
     head_diameter = 7; // For countersinking the head
     head_height = 2;
     hole_position = [radius - head_diameter/2 - 2, 0, 0];
     num_holes = 3;
-    
+
     module base_plate() {
         difference() {
             circle(radius);
             translate([(radius+cut),0,0]) square(2*radius, true);
         }
     }
-    
+
     module hole_reinforcements() {
         rotate([0, 0, hole_angle]) union() {
             for (hole_num = [0: num_holes]) {
@@ -25,7 +25,7 @@ module cup_holder(thickness = 4, height = 10, brim_width = 5, hole_angle = 45) {
             }
         }
     }
-    
+
     module brim() {
         union() {
             difference() {
@@ -35,7 +35,7 @@ module cup_holder(thickness = 4, height = 10, brim_width = 5, hole_angle = 45) {
             hole_reinforcements();
         }
     }
-    
+
     module mounting_holes() {
         rotate([0, 0, hole_angle]) union() {
             for (hole_num = [0: num_holes]) {
@@ -46,7 +46,7 @@ module cup_holder(thickness = 4, height = 10, brim_width = 5, hole_angle = 45) {
             }
         }
     }
-    
+
     difference() {
         union() {
             translate([0, 0, height-thickness]) linear_extrude(thickness) base_plate();
@@ -57,22 +57,30 @@ module cup_holder(thickness = 4, height = 10, brim_width = 5, hole_angle = 45) {
 }
 
 module switch_keyed_hole() {
-    radius = 6.1;
-    key_size = [1.5, 1.0];
-    
+    radius = 6.3;
+    key_size = [1.5, 1.5];
+
     difference() {
         circle(radius);
         translate([-0.5*key_size[0], -radius, 0]) square(key_size);
     }
 }
 
+module switch_top_base_plate(thickness = 0.2) {
+    size = [18, 42];
+
+    translate([-0.5*size[0], -15, -thickness]) linear_extrude(thickness) {
+        square(size);
+    }
+}
+
 module markings(thickness = 1) {
     size = 6;
     font = "Corbel:style=Bold";
-    
+
     translate([0, 0, -thickness]) linear_extrude(thickness+0.1) {
-        translate([-9,0,0]) text("IGN", size=size, halign="center", valign="center", font=font);
-        translate([ 9,0,0]) text("FAN", size=size, halign="center", valign="center", font=font);
+        translate([-10,0,0]) text("IGN", size=size, halign="center", valign="center", font=font);
+        translate([ 10,0,0]) text("FAN", size=size, halign="center", valign="center", font=font);
     }
 }
 
@@ -84,12 +92,16 @@ difference() {
 
     // Holes for switches
     linear_extrude(height+0.1) union() {
-        translate([-9, 0, 0]) switch_keyed_hole();
-        translate([9, 0, 0]) switch_keyed_hole();
+        translate([-10, 0, 0]) switch_keyed_hole();
+        translate([ 10, 0, 0]) switch_keyed_hole();
+    }
+
+    // Inserts for switch tops
+    union() {
+        translate([-10, 0, height]) switch_top_base_plate();
+        translate([ 10, 0, height]) switch_top_base_plate();
     }
 
     // Text
     translate([0, -20, height]) markings();
 }
-
-
