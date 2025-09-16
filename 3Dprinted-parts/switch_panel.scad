@@ -1,107 +1,77 @@
 $fn = 50;
 
-module cup_holder(thickness = 4, height = 10, brim_width = 5, hole_angle = 45) {
-    radius = 33.9;
-    cut = 0.77*radius;
+use <lib/shapes.scad>
+use <lib/mounting_holes.scad>
+use <lib/flip_switch.scad>
 
-    // Mounting holes
-    hole_diameter = 4; // M4 screw
-    head_diameter = 7; // For countersinking the head
-    head_height = 2;
-    hole_position = [radius - head_diameter/2 - 2, 0, 0];
-    num_holes = 3;
+radius = 33.9;
+rear_hole_radius = 20;
 
-    module base_plate() {
-        difference() {
-            circle(radius);
-            translate([(radius+cut),0,0]) square(2*radius, true);
-        }
-    }
+plate_thickness = 4;
+spacer_thickness = 10;
 
-    module hole_reinforcements() {
-        rotate([0, 0, hole_angle]) union() {
-            for (hole_num = [0: num_holes]) {
-                rotate([0, 0, 360*hole_num/num_holes]) translate(hole_position) circle(d = head_diameter+2);
-            }
-        }
-    }
-
-    module brim() {
-        union() {
-            difference() {
-                base_plate();
-                offset(-brim_width) base_plate();
-            }
-            hole_reinforcements();
-        }
-    }
-
-    module mounting_holes() {
-        rotate([0, 0, hole_angle]) union() {
-            for (hole_num = [0: num_holes]) {
-                rotate([0, 0, 360*hole_num/num_holes]) translate(hole_position) union() {
-                    translate([0, 0, -0.1]) cylinder(height+0.1, d = hole_diameter);
-                    translate([0, 0, height-head_height]) cylinder(head_height+0.1, d = head_diameter);
-                }
-            }
-        }
-    }
-
-    difference() {
-        union() {
-            translate([0, 0, height-thickness]) linear_extrude(thickness) base_plate();
-            linear_extrude(height) brim();
-        }
-        mounting_holes();
-    }
-}
-
-module switch_keyed_hole() {
-    radius = 6.3;
-    key_size = [1.5, 1.5];
-
-    difference() {
-        circle(radius);
-        translate([-0.5*key_size[0], -radius, 0]) square(key_size);
-    }
-}
-
-module switch_top_base_plate(thickness = 0.2) {
-    size = [18, 42];
-
-    translate([-0.5*size[0], -15, -thickness]) linear_extrude(thickness) {
-        square(size);
-    }
-}
-
-module markings(thickness = 1) {
-    size = 6;
+module marking(text, depth = 1) {
+    font_size = 6;
     font = "Corbel:style=Bold";
-
-    translate([0, 0, -thickness]) linear_extrude(thickness+0.1) {
-        translate([-10,0,0]) text("IGN", size=size, halign="center", valign="center", font=font);
-        translate([ 10,0,0]) text("FAN", size=size, halign="center", valign="center", font=font);
+    translate([0, 0, -depth]) linear_extrude(depth) {
+        text(text, size=font_size, halign="center", valign="center", font=font);
     }
 }
 
-thickness = 4;
-height = 10;
+module front_plate() {
+    difference() {
+        linear_extrude(plate_thickness) base_plate(radius);
+        
+        // Mounting holes
+        mounting_holes(radius, plate_thickness, offset_angle = 45);
 
-difference() { 
-    cup_holder(thickness = thickness, height = height);
+        // Holes for switches
+        linear_extrude(plate_thickness) union() {
+            translate([-10, 0, 0]) flip_switch_hole();
+            translate([ 10, 0, 0]) flip_switch_hole();
+        }
 
-    // Holes for switches
-    linear_extrude(height+0.1) union() {
-        translate([-10, 0, 0]) switch_keyed_hole();
-        translate([ 10, 0, 0]) switch_keyed_hole();
+        // Inserts for switch tops
+        union() {
+            translate([-10, 0, plate_thickness]) flip_switch_base_plate();
+            translate([ 10, 0, plate_thickness]) flip_switch_base_plate();
+        }
+
+        // Text
+        union() {
+            translate([-10, -20, plate_thickness]) marking("IGN");
+            translate([ 10, -20, plate_thickness]) marking("FAN");
+        }
     }
-
-    // Inserts for switch tops
-    union() {
-        translate([-10, 0, height]) switch_top_base_plate();
-        translate([ 10, 0, height]) switch_top_base_plate();
-    }
-
-    // Text
-    translate([0, -20, height]) markings();
 }
+
+module rear_plate() {
+    difference() {
+        linear_extrude(plate_thickness) base_plate(radius);
+        
+        // Mounting_holes
+        mounting_holes(rear_hole_radius, plate_thickness, offset_angle = 45);
+        
+        // Text
+        translate([0, 0, plate_thickness]) marking("KEY");
+    }
+}
+
+module spacer(radius) {
+    difference() {
+        union() {
+            linear_extrude(spacer_thickness) mounting_spacer(radius);
+            mounting_hole_reinforcements(radius, spacer_thickness, offset_angle = 45);
+        }
+        
+        mounting_holes(radius, spacer_thickness, offset_angle = 45, recessed = false);
+    }
+}
+
+// Front cup holder
+translate([-40,-40, 0]) front_plate();
+translate([-40, 40, 0]) spacer(radius);
+
+// Rear cup holder
+translate([ 40,-40, 0]) rear_plate();
+translate([ 40, 40, 0]) spacer(rear_hole_radius);
